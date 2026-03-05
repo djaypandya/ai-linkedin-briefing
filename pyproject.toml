@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-linkedin-briefing"
+version = "0.1.0"
+description = "Daily AI newsletter and LinkedIn post agent."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.27.0",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.6.1",
+  "python-dotenv>=1.0.1",
+  "feedparser>=6.0.11",
+  "beautifulsoup4>=4.12.3",
+  "playwright>=1.52.0",
+]
+
+[project.scripts]
+ai-briefing = "ai_linkedin_briefing.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

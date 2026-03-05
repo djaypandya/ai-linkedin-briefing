@@ -1,0 +1,22 @@
+# AI LinkedIn Briefing
+
+This project builds a daily AI newsletter from approved sources and publishes the newsletter followed by a summary post on LinkedIn through browser automation.
+
+## Status
+- Source collection uses approved RSS feeds with filtering, deduplication, and simple ranking
+- Browser session setup for LinkedIn is implemented through Playwright
+- Exact LinkedIn newsletter editor and post composer automation are not implemented yet
+
+## First Run Goals
+- load configuration
+- load newsletter and source policy documents
+- collect source candidates from configured feeds
+- validate that enough candidate stories exist
+- write local output artifacts
+- prepare and save a reusable LinkedIn browser session
+
+## Commands
+- Draft only: `ai-briefing`
+- Store LinkedIn password securely in macOS Keychain: `ai-briefing --set-linkedin-credentials`
+- Prepare LinkedIn browser session with a visible browser: `ai-briefing --prepare-browser-session --headed`
+- Attempt full run including publish stubs: `ai-briefing --publish`

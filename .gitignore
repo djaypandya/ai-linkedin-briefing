@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# Local secrets/session artifacts
+secrets/
+
+# Build / packaging artifacts
+*.egg-info/
+dist/
+build/
+
+# Runtime outputs
+logs/
+output/
