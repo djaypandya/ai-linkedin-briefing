@@ -45,6 +45,46 @@ DEFAULT_FEEDS = (
         "url": "https://apnews.com/hub/technology/rss",
         "source_kind": SourceKind.INDEPENDENT,
     },
+    {
+        "publisher": "TechCrunch AI",
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "source_kind": SourceKind.INDEPENDENT,
+    },
+    {
+        "publisher": "AI Magazine",
+        "url": "https://aimagazine.com/news/rss",
+        "source_kind": SourceKind.INDEPENDENT,
+    },
+    {
+        "publisher": "OpenAI Blog",
+        "url": "https://openai.com/news/rss.xml",
+        "source_kind": SourceKind.PRIMARY,
+    },
+    {
+        "publisher": "BAIR Blog",
+        "url": "https://bair.berkeley.edu/blog/feed.xml",
+        "source_kind": SourceKind.INDEPENDENT,
+    },
+    {
+        "publisher": "Google Research Blog",
+        "url": "https://research.google/blog/rss/",
+        "source_kind": SourceKind.PRIMARY,
+    },
+    {
+        "publisher": "Google DeepMind Blog",
+        "url": "https://deepmind.google/blog/rss.xml",
+        "source_kind": SourceKind.PRIMARY,
+    },
+    {
+        "publisher": "MIT News AI Topic",
+        "url": "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
+        "source_kind": SourceKind.INDEPENDENT,
+    },
+    {
+        "publisher": "The Rundown AI",
+        "url": "https://www.therundown.ai/rss",
+        "source_kind": SourceKind.INDEPENDENT,
+    },
 )
 
 AI_KEYWORDS = {
