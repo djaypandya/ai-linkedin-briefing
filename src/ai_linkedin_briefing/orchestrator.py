@@ -11,6 +11,7 @@ from .logging_utils import write_json_log
 from .output_store import store_outputs
 from .publishers.browser import LinkedInBrowserPublisher
 from .source_loader import collect_candidates
+from .summarizer import OpenAIStorySummarizer, OpenSourceStorySummarizer
 from .validator import validate_newsletter, validate_post
 
 
@@ -72,7 +73,18 @@ def run_agent(config: AppConfig, paths: DocumentPaths, publish: bool = False) ->
     agent_spec = read_required_text(paths.agent_spec)
 
     candidates = collect_candidates(now=now)
-    newsletter = draft_newsletter(candidates=candidates, now=now, timezone_name=config.timezone)
+    instruction_context = _build_instruction_context(
+        newsletter_template=newsletter_template,
+        source_criteria=source_criteria,
+        agent_spec=agent_spec,
+    )
+    summarizer = _build_summarizer(config, instruction_context=instruction_context)
+    newsletter = draft_newsletter(
+        candidates=candidates,
+        now=now,
+        timezone_name=config.timezone,
+        summarizer=summarizer,
+    )
     post = draft_post(newsletter)
 
     validate_newsletter(newsletter)
@@ -102,6 +114,8 @@ def run_agent(config: AppConfig, paths: DocumentPaths, publish: bool = False) ->
                 "source_criteria_chars": len(source_criteria),
                 "agent_spec_chars": len(agent_spec),
             },
+            "summarizer_backend": config.summarizer_backend,
+            "summarizer_model": _selected_model_name(config),
         },
     )
 
@@ -127,3 +141,55 @@ def run_agent(config: AppConfig, paths: DocumentPaths, publish: bool = False) ->
         results["publish_status"] = post_result.detail
 
     return results
+
+
+def _build_summarizer(config: AppConfig, instruction_context: str):
+    backend = config.summarizer_backend.strip().lower()
+    if backend == "none":
+        return None
+    if backend == "openai":
+        if not (config.openai_api_key or "").strip():
+            raise ConfigurationError(
+                "OPENAI_API_KEY is required when SUMMARIZER_BACKEND=openai."
+            )
+        return OpenAIStorySummarizer(
+            api_key=config.openai_api_key or "",
+            model=config.openai_model,
+            instruction_context=instruction_context,
+            base_url=config.openai_base_url,
+            openai_timeout_seconds=config.openai_timeout_seconds,
+            article_fetch_timeout_seconds=config.article_fetch_timeout_seconds,
+        )
+    if backend == "ollama":
+        return OpenSourceStorySummarizer(
+            base_url=config.ollama_base_url,
+            model=config.ollama_model,
+            instruction_context=instruction_context,
+            ollama_timeout_seconds=config.ollama_timeout_seconds,
+            article_fetch_timeout_seconds=config.article_fetch_timeout_seconds,
+        )
+    raise ConfigurationError(f"Unsupported summarizer backend: {config.summarizer_backend}")
+
+
+def _selected_model_name(config: AppConfig) -> str | None:
+    backend = config.summarizer_backend.strip().lower()
+    if backend == "openai":
+        return config.openai_model
+    if backend == "ollama":
+        return config.ollama_model
+    return None
+
+
+def _build_instruction_context(
+    newsletter_template: str,
+    source_criteria: str,
+    agent_spec: str,
+) -> str:
+    return (
+        "NEWSLETTER_TEMPLATE:\n"
+        f"{newsletter_template.strip()}\n\n"
+        "SOURCE_CRITERIA:\n"
+        f"{source_criteria.strip()}\n\n"
+        "AGENT_SPEC:\n"
+        f"{agent_spec.strip()}"
+    )

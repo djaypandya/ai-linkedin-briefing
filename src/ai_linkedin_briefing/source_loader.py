@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import feedparser
+import httpx
 from bs4 import BeautifulSoup
 
 from .exceptions import SourceCollectionError
@@ -217,9 +218,21 @@ def _score_candidate(
 
 
 def _parse_feed(feed: dict[str, Any]) -> feedparser.FeedParserDict:
-    parsed = feedparser.parse(feed["url"])
+    url = feed["url"]
+    headers = {
+        "User-Agent": "ai-linkedin-briefing/0.1 (+https://www.linkedin.com)",
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+    }
+    try:
+        response = httpx.get(url, headers=headers, follow_redirects=True, timeout=20.0)
+    except httpx.HTTPError as exc:
+        raise SourceCollectionError(f"Feed could not be fetched: {url}") from exc
+    if response.status_code >= 400:
+        raise SourceCollectionError(f"Feed returned HTTP {response.status_code}: {url}")
+
+    parsed = feedparser.parse(response.content)
     if parsed.bozo and not parsed.entries:
-        raise SourceCollectionError(f"Feed could not be parsed: {feed['url']}")
+        raise SourceCollectionError(f"Feed could not be parsed: {url}")
     return parsed
 
 
@@ -272,10 +285,11 @@ def collect_candidates(now: datetime, lookback_hours: int = 24) -> list[StoryCan
                 )
             )
 
-    if len(raw_candidates) < 5:
+    minimum_candidates_required = 3
+    if len(raw_candidates) < minimum_candidates_required:
         failure_detail = "; ".join(feed_failures) if feed_failures else "No feed parsing failures were recorded."
         raise SourceCollectionError(
-            "Fewer than five AI-relevant candidates were collected from approved feeds in the last 24 hours. "
+            "Fewer than three AI-relevant candidates were collected from approved feeds in the last 24 hours. "
             f"Collected={len(raw_candidates)}. {failure_detail}"
         )
 

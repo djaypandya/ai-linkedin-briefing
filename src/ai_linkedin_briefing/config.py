@@ -19,6 +19,9 @@ class AppConfig(BaseSettings):
     )
 
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    openai_base_url: str = Field(default="https://api.openai.com/v1", alias="OPENAI_BASE_URL")
+    openai_model: str = Field(default="gpt-5.4", alias="OPENAI_MODEL")
+    openai_timeout_seconds: int = Field(default=120, alias="OPENAI_TIMEOUT_SECONDS")
     linkedin_email: Optional[str] = Field(default=None, alias="LINKEDIN_EMAIL")
     linkedin_password: Optional[str] = Field(default=None, alias="LINKEDIN_PASSWORD")
     linkedin_keychain_service: str = Field(
@@ -32,6 +35,11 @@ class AppConfig(BaseSettings):
     timezone: str = Field(default="America/Los_Angeles", alias="TIMEZONE")
     publish_hour: int = Field(default=8, alias="PUBLISH_HOUR")
     author_name: str = Field(default="Djay Pandya", alias="AUTHOR_NAME")
+    summarizer_backend: str = Field(default="openai", alias="SUMMARIZER_BACKEND")
+    ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
+    ollama_model: str = Field(default="deepseek-r1:70b", alias="OLLAMA_MODEL")
+    ollama_timeout_seconds: int = Field(default=120, alias="OLLAMA_TIMEOUT_SECONDS")
+    article_fetch_timeout_seconds: int = Field(default=20, alias="ARTICLE_FETCH_TIMEOUT_SECONDS")
 
 
 class DocumentPaths(BaseModel):

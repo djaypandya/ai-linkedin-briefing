@@ -1,43 +1,105 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
+from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from .exceptions import ValidationError
 from .models import DraftStory, NewsletterDraft, PostDraft, StoryCandidate
 
+MIN_BRIEFING_STORIES = 3
+MAX_BRIEFING_STORIES = 5
+DISALLOWED_HEADLINE_PREFIXES = ("exclusive", "breaking", "analysis", "opinion")
+MATTERS_PHRASES = ("this matters because", "this is important because")
+
+
+class StorySummarizer(Protocol):
+    def summarize(self, candidate: StoryCandidate): ...
+
+
+def _normalize_text(value: str) -> str:
+    normalized = " ".join(value.split())
+    # Keep punctuation simple for readability and template compliance.
+    normalized = normalized.replace("—", "-").replace("–", "-")
+    return normalized.strip()
+
+
+def _ensure_sentence(value: str) -> str:
+    text = value.strip()
+    if not text:
+        return text
+    text_without_closers = text.rstrip("\"')]} ")
+    if text_without_closers and text_without_closers[-1] in ".!?":
+        return text
+    return f"{text}."
+
 
 def _headline_from_title(title: str) -> str:
-    cleaned = " ".join(title.split())
+    cleaned = _normalize_text(title)
+    # Remove editorial labels like "EXCLUSIVE:" at the start of headlines.
+    cleaned = re.sub(
+        r"^\s*(?:\[)?(?:exclusive|breaking|analysis|opinion)(?:\])?\s*:\s*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(r"^\s*(?:exclusive|breaking|analysis|opinion)\s+", "", cleaned, flags=re.IGNORECASE)
     if not cleaned:
         raise ValidationError("Story title is empty after normalization.")
+    lowered = cleaned.lower()
+    if lowered.startswith(DISALLOWED_HEADLINE_PREFIXES):
+        raise ValidationError(f"Story headline still starts with a disallowed label: {cleaned}")
     return cleaned
 
 
 def _body_from_candidate(candidate: StoryCandidate) -> str:
-    base = " ".join(candidate.summary.split())
+    base = _normalize_text(candidate.summary)
     if not base:
         raise ValidationError(f"Story summary is empty for source: {candidate.url}")
-    return base
+    summary_sentence = _ensure_sentence(base)
+    lower_summary = summary_sentence.lower()
+    if any(phrase in lower_summary for phrase in MATTERS_PHRASES):
+        matters_sentence = ""
+    else:
+        matters_sentence = "This matters because it affects how AI tools are built and used."
+
+    source_sentence = f"(Source: {candidate.publisher})"
+    parts = [summary_sentence]
+    if matters_sentence:
+        parts.append(matters_sentence)
+    parts.append(source_sentence)
+    return " ".join(parts)
 
 
 def draft_newsletter(
     candidates: list[StoryCandidate],
     now: datetime,
     timezone_name: str,
+    summarizer: StorySummarizer | None = None,
 ) -> NewsletterDraft:
-    if len(candidates) < 5:
-        raise ValidationError("At least five candidates are required to draft the newsletter.")
-
-    stories = [
-        DraftStory(
-            headline=_headline_from_title(candidate.title),
-            body=_body_from_candidate(candidate),
-            source_url=candidate.url,
-            publisher=candidate.publisher,
+    if len(candidates) < MIN_BRIEFING_STORIES:
+        raise ValidationError(
+            f"At least {MIN_BRIEFING_STORIES} candidates are required to draft the newsletter."
         )
-        for candidate in candidates[:5]
-    ]
+
+    stories: list[DraftStory] = []
+    for candidate in candidates[:MAX_BRIEFING_STORIES]:
+        if summarizer is None:
+            headline = _headline_from_title(candidate.title)
+            body = _body_from_candidate(candidate)
+        else:
+            summarized = summarizer.summarize(candidate)
+            headline = _headline_from_title(summarized.headline)
+            body = _normalize_text(summarized.body)
+        stories.append(
+            DraftStory(
+                headline=headline,
+                body=body,
+                source_url=candidate.url,
+                publisher=candidate.publisher,
+            )
+        )
     local_now = now.astimezone(ZoneInfo(timezone_name))
     return NewsletterDraft(
         run_at=now,

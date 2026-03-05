@@ -12,6 +12,7 @@
 - Sentence length: short to medium
 - Flow: easy to scan and easy to read on a phone
 - Avoid: jargon, hype, vague claims, long quotes, and filler
+- Avoid: editorial labels in headlines such as `EXCLUSIVE:`, `BREAKING:`, `ANALYSIS:`, and `OPINION:`
 - Required: explain why each item matters in simple terms
 - Required: use source names and links for every item
 - **NO EMDASHES IN OUTPUT**
